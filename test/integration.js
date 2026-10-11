@@ -32,6 +32,7 @@ const assert = require('node:assert/strict');
 const path = require('node:path');
 const { tests } = require('@iobroker/testing');
 const tools = require('../lib/tools');
+const allowedExitCodes = [0, 11];
 // ============================================================
 
 // ============================================================
@@ -57,10 +58,10 @@ async function waitForProcessing(harness) {
     while (Date.now() < deadline) {
         const state = await harness.states.getStateAsync('dwd.0.info.lastUpdate');
         if (state && state.val > 0 && harness.didAdapterStop()) {
-            assert.equal(harness.adapterExit, 0);
+            assert.ok(allowedExitCodes.includes(harness.adapterExit));
             return;
         }
-        if (harness.didAdapterStop() && harness.adapterExit !== 0) {
+        if (harness.didAdapterStop() && !allowedExitCodes.includes(harness.adapterExit)) {
             throw new Error(`Adapter exited with ${harness.adapterExit}`);
         }
         await new Promise(resolve => setTimeout(resolve, 50));
@@ -73,6 +74,7 @@ async function waitForProcessing(harness) {
 // [BLOCK:400] Integrationsprüfung
 // ============================================================
 tests.integration(path.join(__dirname, '..'), {
+    allowedExitCodes,
     defineAdditionalTests({ suite }) {
         suite('DWD warning fixture', getHarness => {
             let harness;
@@ -140,6 +142,7 @@ tests.integration(path.join(__dirname, '..'), {
 // [BLOCK:1000] Änderungsverlauf
 // ============================================================
 // 0.1 (11.10.2026):
+// - Reguläres Adapterende mit ioBroker-Code 11 als erfolgreichen Abschluss berücksichtigt.
 // - Integrationstest mit aktuellem ioBroker-Testmodul und festen Warndaten erstellt.
 //
 // ============================================================
